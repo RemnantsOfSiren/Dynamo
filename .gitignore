@@ -1,0 +1,8 @@
+.DS_Store
+build
+sourcemap.json
+bytecodecheck.luau
+node_modules
+*.tgz
+npmtest
+pesde.lock

@@ -1,0 +1,15 @@
+[package]
+name = "elentium/dynamo"
+version = "1.0.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+description = "Extremely optimized schemaless SerDes library"
+license = "Apache-2.0"
+include = [
+    "src/Dynamo.luau",
+    "default.project.json",
+    "README.md",
+    "LICENSE",
+    "wally.toml",
+]
+exclude = ["**"]

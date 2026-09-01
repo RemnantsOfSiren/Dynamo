@@ -1,0 +1,17 @@
+{
+    "name": "dynamo",
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "Dynamo": {
+                "$path": "src/Dynamo.luau"
+            },
+            "Bench": {
+                "$path": "bench"
+            },
+            "Test": {
+                "$path": "test"
+            }
+        }
+    }
+}

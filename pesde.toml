@@ -1,0 +1,14 @@
+name = "elentium/dynamo"
+version = "1.0.0"
+description = "Extremely optimized schemaless SerDes library"
+license = "Apache-2.0"
+authors = ["Elentium"]
+includes = ["src/Dynamo.luau", "pesde.toml", "LICENSE", "README.md"]
+
+[target]
+environment = "roblox"
+lib = "src/Dynamo.luau"
+build_files = ["src"]
+
+[indices]
+default = "https://github.com/pesde-pkg/index"

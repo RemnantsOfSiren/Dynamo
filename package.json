@@ -1,0 +1,43 @@
+{
+	"name": "@elentium/dynamo",
+	"version": "1.0.0",
+	"description": "Extremely optimized schemaless SerDes library",
+	"license": "Apache-2.0",
+	"author": "Elentium",
+	"homepage": "https://elentium.github.io/Dynamo/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Elentium/Dynamo.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Elentium/Dynamo/issues"
+	},
+	"keywords": [
+		"roblox",
+		"roblox-ts",
+		"rbxts",
+		"serialization",
+		"serde",
+		"buffer",
+		"schemaless",
+		"luau"
+	],
+	"main": "src/Dynamo.luau",
+	"types": "src/Dynamo.d.ts",
+	"typings": "src/Dynamo.d.ts",
+	"files": [
+		"default.project.json",
+		"src/Dynamo.luau",
+		"src/Dynamo.d.ts",
+		"LICENSE",
+		"README.md"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"devDependencies": {
+		"@rbxts/compiler-types": "3.0.0-types.0",
+		"@rbxts/types": "^1.0.800",
+		"typescript": "^5.0.0"
+	}
+}

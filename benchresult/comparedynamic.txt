@@ -1,0 +1,125 @@
+__________________________________________________
+* DYNAMO vs BLAZE DYNAMIC vs BUFFERENCODER vs MESSAGEPACK vs JSON
+________________________
+*** U8:
+**** Size: Dynamo=2b Blaze=2b BE=5b MsgPack=1b JSON=2b
+**** Serialize μs: Dynamo=0.06 Blaze=0.15 BE=0.26 MsgPack=0.06 JSON=0.18 | win=MessagePack
+**** Deserialize μs: Dynamo=0.03 Blaze=0.15 BE=0.28 MsgPack=0.05 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.30 BE=0.52 MsgPack=0.10 JSON=0.44 | win=Dynamo
+________________________
+*** I8:
+**** Size: Dynamo=2b Blaze=2b BE=5b MsgPack=2b JSON=3b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.26 MsgPack=0.06 JSON=0.18 | win=MessagePack
+**** Deserialize μs: Dynamo=0.03 Blaze=0.15 BE=0.28 MsgPack=0.05 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.10 Blaze=0.29 BE=0.52 MsgPack=0.10 JSON=0.43 | win=MessagePack
+________________________
+*** U16:
+**** Size: Dynamo=3b Blaze=3b BE=6b MsgPack=3b JSON=4b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.25 MsgPack=0.09 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.15 BE=0.27 MsgPack=0.06 JSON=0.24 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.30 BE=0.52 MsgPack=0.14 JSON=0.44 | win=Dynamo
+________________________
+*** I16:
+**** Size: Dynamo=3b Blaze=3b BE=6b MsgPack=3b JSON=5b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.25 MsgPack=0.09 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.14 BE=0.27 MsgPack=0.06 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.29 BE=0.52 MsgPack=0.14 JSON=0.43 | win=Dynamo
+________________________
+*** U32:
+**** Size: Dynamo=5b Blaze=5b BE=8b MsgPack=5b JSON=9b
+**** Serialize μs: Dynamo=0.06 Blaze=0.15 BE=0.25 MsgPack=0.11 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.15 BE=0.28 MsgPack=0.08 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.29 BE=0.52 MsgPack=0.18 JSON=0.44 | win=Dynamo
+________________________
+*** I32:
+**** Size: Dynamo=5b Blaze=5b BE=8b MsgPack=5b JSON=10b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.25 MsgPack=0.10 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.13 BE=0.28 MsgPack=0.08 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.10 Blaze=0.30 BE=0.52 MsgPack=0.18 JSON=0.46 | win=Dynamo
+________________________
+*** F32:
+**** Size: Dynamo=5b Blaze=5b BE=12b MsgPack=9b JSON=4b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.25 MsgPack=0.15 JSON=0.19 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.14 BE=0.27 MsgPack=0.13 JSON=0.23 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.29 BE=0.51 MsgPack=0.28 JSON=0.43 | win=Dynamo
+________________________
+*** F64:
+**** Size: Dynamo=9b Blaze=9b BE=12b MsgPack=9b JSON=4b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.25 MsgPack=0.15 JSON=0.19 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.14 BE=0.27 MsgPack=0.12 JSON=0.24 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.10 Blaze=0.30 BE=0.51 MsgPack=0.29 JSON=0.44 | win=Dynamo
+________________________
+*** Bool:
+**** Size: Dynamo=2b Blaze=2b BE=4b MsgPack=1b JSON=4b
+**** Serialize μs: Dynamo=0.06 Blaze=0.15 BE=0.24 MsgPack=0.07 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.16 BE=0.27 MsgPack=0.04 JSON=0.20 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.30 BE=0.51 MsgPack=0.10 JSON=0.37 | win=Dynamo
+________________________
+*** Nil:
+**** Size: Dynamo=1b MsgPack=1b JSON=4b
+**** Serialize μs: Dynamo=0.07 MsgPack=0.07 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.02 MsgPack=0.04 JSON=0.21 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.08 MsgPack=0.10 JSON=0.38 | win=Dynamo
+________________________
+*** String (10):
+**** Size: Dynamo=12b Blaze=12b BE=15b MsgPack=11b JSON=12b
+**** Serialize μs: Dynamo=0.08 Blaze=0.17 BE=0.26 MsgPack=0.08 JSON=0.18 | win=Dynamo
+**** Deserialize μs: Dynamo=0.05 Blaze=0.17 BE=0.29 MsgPack=0.07 JSON=0.25 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.12 Blaze=0.33 BE=0.55 MsgPack=0.14 JSON=0.44 | win=Dynamo
+________________________
+*** Array (10):
+**** Size: Dynamo=22b Blaze=22b BE=22b MsgPack=11b JSON=22b
+**** Serialize μs: Dynamo=0.33 Blaze=0.89 BE=0.43 MsgPack=0.45 JSON=0.55 | win=Dynamo
+**** Deserialize μs: Dynamo=0.32 Blaze=0.59 BE=0.52 MsgPack=0.28 JSON=0.54 | win=MessagePack
+**** RoundTrip μs: Dynamo=0.90 Blaze=1.27 BE=0.95 MsgPack=0.75 JSON=1.18 | win=MessagePack
+________________________
+*** Map (10):
+**** Size: Dynamo=63b Blaze=64b BE=63b MsgPack=42b JSON=73b
+**** Serialize μs: Dynamo=0.78 Blaze=1.22 BE=0.71 MsgPack=0.88 JSON=0.71 | win=JSON
+**** Deserialize μs: Dynamo=0.73 Blaze=1.39 BE=1.24 MsgPack=0.87 JSON=0.84 | win=Dynamo
+**** RoundTrip μs: Dynamo=1.57 Blaze=2.62 BE=2.04 MsgPack=1.80 JSON=1.66 | win=Dynamo
+________________________
+*** Buffer (8b):
+**** Size: Dynamo=10b BE=13b MsgPack=10b
+**** Serialize μs: Dynamo=0.11 BE=0.32 MsgPack=0.10 | win=MessagePack
+**** Deserialize μs: Dynamo=0.06 BE=0.34 MsgPack=0.07 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.16 BE=0.65 MsgPack=0.17 | win=Dynamo
+________________________
+*** Buffer (32b):
+**** Size: Dynamo=34b BE=37b MsgPack=34b
+**** Serialize μs: Dynamo=0.11 BE=0.28 MsgPack=0.12 | win=Dynamo
+**** Deserialize μs: Dynamo=0.07 BE=0.33 MsgPack=0.08 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.17 BE=0.63 MsgPack=0.20 | win=Dynamo
+________________________
+*** Vector3:
+**** Size: Dynamo=13b Blaze=13b BE=16b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.27 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 Blaze=0.16 BE=0.30 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.09 Blaze=0.31 BE=0.54 | win=Dynamo
+________________________
+*** Vector2:
+**** Size: Dynamo=9b Blaze=9b BE=12b
+**** Serialize μs: Dynamo=0.06 Blaze=0.15 BE=0.26 | win=Dynamo
+**** Deserialize μs: Dynamo=0.05 Blaze=0.17 BE=0.31 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.10 Blaze=0.32 BE=0.55 | win=Dynamo
+________________________
+*** Color3:
+**** Size: Dynamo=4b Blaze=4b BE=7b
+**** Serialize μs: Dynamo=0.07 Blaze=0.15 BE=0.26 | win=Dynamo
+**** Deserialize μs: Dynamo=0.05 Blaze=0.18 BE=0.30 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.11 Blaze=0.34 BE=0.56 | win=Dynamo
+________________________
+*** CFrame:
+**** Size: Dynamo=29b Blaze=49b BE=23b
+**** Serialize μs: Dynamo=0.11 Blaze=0.20 BE=0.40 | win=Dynamo
+**** Deserialize μs: Dynamo=0.07 Blaze=0.23 BE=0.32 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.17 Blaze=0.43 BE=0.72 | win=Dynamo
+________________________
+*** UDim2:
+**** Size: Dynamo=9b BE=20b
+**** Serialize μs: Dynamo=0.08 BE=0.31 | win=Dynamo
+**** Deserialize μs: Dynamo=0.05 BE=0.31 | win=Dynamo
+**** RoundTrip μs: Dynamo=0.13 BE=0.57 | win=Dynamo
+______________________________________
+* RoundTrip wins: Dynamo=18 Blaze=0 BufferEncoder=0 MessagePack=2 JSON=0 (of 20)
+__________________________________________________

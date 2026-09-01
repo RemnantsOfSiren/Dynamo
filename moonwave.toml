@@ -1,0 +1,33 @@
+title = "Dynamo"
+gitRepoUrl = "https://github.com/Elentium/Dynamo"
+gitSourceBranch = "main"
+changelog = true
+classOrder = [{ section = "Core", classes = ["Dynamo"] }]
+apiCategories = ["Core"]
+
+[docusaurus]
+url = "https://elentium.github.io"
+baseUrl = "/Dynamo/"
+favicon = "favicon.svg"
+tagline = "Efficient schemaless serialization library"
+onBrokenLinks = "throw"
+onBrokenMarkdownLinks = "warn"
+
+[footer]
+copyright = "Copyright © 2026 IAMNOTULTRA3. Built with Moonwave and Docusaurus."
+
+[home]
+enabled = true
+includeReadme = false
+
+[[home.features]]
+title = "Schemaless"
+description = "Serialize values directly. Dynamo infers compact wire types at runtime, no schema modules to share or keep in sync."
+
+[[home.features]]
+title = "Great performance"
+description = "Native codegen, localized buffer ops, and tight type handlers keep hot paths focused on throughput."
+
+[[home.features]]
+title = "Rich datatype coverage"
+description = "Numbers, strings, buffers, tables, Vector3, CFrame, Color3, UDim/UDim2, Enums, and Instance references out of the box."
