@@ -19,43 +19,43 @@ Values are average microseconds per call (μs). Lower is faster.
 
 | Type | Serialize | Deserialize | RoundTrip |
 | --- | ---: | ---: | ---: |
-| `U8` | 0.06 | 0.02 | 0.09 |
-| `I8` | 0.07 | 0.03 | 0.09 |
-| `U16` | 0.07 | 0.02 | 0.09 |
-| `F32` | ~0.06 | ~0.02 | 0.09 |
-| `F64` | ~0.06 | ~0.02 | 0.09 |
-| `Bool` | ~0.06 | ~0.02 | ~0.09 |
-| `Nil` | — | — | 0.09 |
+| `U8` | 0.06 | 0.02 | 0.08 |
+| `I8` | 0.05 | 0.02 | 0.08 |
+| `U16` | 0.06 | 0.02 | 0.08 |
+| `F32` | 0.05 | 0.02 | 0.08 |
+| `F64` | 0.06 | 0.02 | 0.08 |
+| `Bool` | 0.06 | 0.02 | 0.08 |
+| `Nil` | 0.05 | 0.02 | 0.07 |
 
 ### Strings, buffers, and datatypes
 
 | Type | RoundTrip (μs) |
 | --- | ---: |
-| String (10 chars) | 0.25 |
-| String (100 chars) | 0.19 |
-| Buf (32b) | 0.17 |
-| Vector3 | — (see compare) |
-| CFrame (quat) | 0.18 |
-| Color3 | ~0.12 |
-| UDim2 | 0.13 |
-| EnumItem | 0.24 |
+| String (10 chars) | 0.12 |
+| String (100 chars) | 0.16 |
+| Buf (32b) | 0.15 |
+| Vector3 | 0.08 |
+| CFrame (quat) | 0.16 |
+| Color3 | 0.10 |
+| UDim2 | 0.12 |
+| EnumItem | 0.21 |
 
 ### Collections
 
 | Type | RoundTrip (μs) |
 | --- | ---: |
-| Array (1) | 0.20 |
-| Array (10) | 0.58 |
-| Array (100) | 4.12 |
-| Map (1) | 0.25 |
-| Map (10) | 1.29 |
-| Map (100) | 10.57 |
+| Array (1) | 0.18 |
+| Array (10) | 0.49 |
+| Array (100) | 3.24 |
+| Map (1) | 0.22 |
+| Map (10) | 1.03 |
+| Map (100) | 8.30 |
 
-Primitive round trips stay near **0.09 μs**. Cost grows mainly with collection size (per-element tags + payloads).
+Primitive round trips sit around **0.08 μs**. Cost grows mainly with collection size (per-element tags + payloads).
 
 ## Versus VoidSentryUltimate and Sera
 
-This comparison is a bit unfair since VoidSentryUltimate and Sera do not infer types at runtime, but Dynamo still managed to keep up well
+This comparison is a bit unfair since VoidSentryUltimate and Sera do not infer types at runtime, but Dynamo still managed to keep up well.
 
 Source: `benchresult/compare.txt`  
 Harness: `bench/Compare.luau`  
@@ -69,16 +69,15 @@ Sera only serializes through schemas; the comparator wraps values in a single-fi
 
 | Case | Approx. ratio |
 | --- | ---: |
-| Scalars / Bool | ~1.3× |
-| String8 / Buffer / Color3 / CFrame quat | ~1.1–1.2× |
-| Vector3 | ~2.4× |
-| Array (10) | ~1.9× |
-| Map (10) | ~1.7× |
-| UDim2 | ~1.4× (Dynamo smaller on wire: 9b vs 16b) |
+| Scalars / Bool / Vector3 | ~1.14× |
+| String8 / Buffer / Color3 / CFrame quat | ~1.07–1.20× |
+| Array (10) | ~1.6× |
+| Map (10) | ~1.4× |
+| UDim2 | ~1.3× (Dynamo smaller on wire: 9b vs 16b) |
 
 ### Versus Sera
 
-On shared primitives and buffers, Dynamo is generally **faster than Sera** on RoundTrip (often ~1.5–2×). Sera’s Buffer16 RoundTrip was an outlier (~0.72 μs) in this run.
+On shared primitives and buffers, Dynamo is about **2×** faster than Sera on RoundTrip (scalars ~0.08 μs vs ~0.16 μs). Sera stays slower on CFrame quat (~0.28 μs vs Dynamo 0.16 μs).
 
 ### How to read this
 
@@ -94,34 +93,32 @@ Iterations: **10,000** per timed batch
 
 Compares Dynamo to BlazeSentry `dynamic`, BufferEncoder, MessagePack, and `HttpService:JSONEncode` / `JSONDecode`. Each library only runs on types it actually supports (Blaze has no `nil` / `buffer` / `UDim2`; MessagePack/JSON skip Roblox datatypes; BufferEncoder wraps non-tables and skips bare `nil`).
 
-**RoundTrip wins in this run:** Dynamo **18**, MessagePack **2**, Blaze **0**, BufferEncoder **0**, JSON **0** (of 20).
-
-MessagePack’s two wins: `I8` (essentially tied at ~0.10 μs) and `Array (10)`.
+**RoundTrip wins in this run:** Dynamo **20**, Blaze **0**, BufferEncoder **0**, MessagePack **0**, JSON **0** (of 20).
 
 ### RoundTrip (μs)
 
 | Case | Dynamo | Blaze | BE | MsgPack | JSON |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| U8 | **0.09** | 0.30 | 0.52 | 0.10 | 0.44 |
-| I8 | 0.10 | 0.29 | 0.52 | **0.10** | 0.43 |
-| U16 | **0.09** | 0.30 | 0.52 | 0.14 | 0.44 |
-| I16 | **0.09** | 0.29 | 0.52 | 0.14 | 0.43 |
-| U32 | **0.09** | 0.29 | 0.52 | 0.18 | 0.44 |
-| I32 | **0.10** | 0.30 | 0.52 | 0.18 | 0.46 |
-| F32 | **0.09** | 0.29 | 0.51 | 0.28 | 0.43 |
-| F64 | **0.10** | 0.30 | 0.51 | 0.29 | 0.44 |
-| Bool | **0.09** | 0.30 | 0.51 | 0.10 | 0.37 |
-| Nil | **0.08** | — | — | 0.10 | 0.38 |
-| String (10) | **0.12** | 0.33 | 0.55 | 0.14 | 0.44 |
-| Array (10) | 0.90 | 1.27 | 0.95 | **0.75** | 1.18 |
-| Map (10) | **1.57** | 2.62 | 2.04 | 1.80 | 1.66 |
-| Buffer (8b) | **0.16** | — | 0.65 | 0.17 | — |
-| Buffer (32b) | **0.17** | — | 0.63 | 0.20 | — |
-| Vector3 | **0.09** | 0.31 | 0.54 | — | — |
-| Vector2 | **0.10** | 0.32 | 0.55 | — | — |
-| Color3 | **0.11** | 0.34 | 0.56 | — | — |
-| CFrame | **0.17** | 0.43 | 0.72 | — | — |
-| UDim2 | **0.13** | — | 0.57 | — | — |
+| U8 | **0.08** | 0.30 | 0.52 | 0.11 | 0.41 |
+| I8 | **0.08** | 0.30 | 0.52 | 0.10 | 0.42 |
+| U16 | **0.08** | 0.30 | 0.52 | 0.14 | 0.43 |
+| I16 | **0.08** | 0.30 | 0.52 | 0.14 | 0.42 |
+| U32 | **0.08** | 0.31 | 0.52 | 0.19 | 0.43 |
+| I32 | **0.09** | 0.30 | 0.53 | 0.19 | 0.44 |
+| F32 | **0.08** | 0.30 | 0.51 | 0.29 | 0.43 |
+| F64 | **0.12** | 0.30 | 0.52 | 0.30 | 0.43 |
+| Bool | **0.08** | 0.31 | 0.52 | 0.10 | 0.36 |
+| Nil | **0.08** | — | — | 0.11 | 0.37 |
+| String (10) | **0.11** | 0.34 | 0.56 | 0.15 | 0.43 |
+| Array (10) | **0.50** | 1.24 | 0.95 | 0.76 | 1.16 |
+| Map (10) | **1.32** | 2.66 | 2.03 | 1.93 | 1.61 |
+| Buffer (8b) | **0.14** | — | 0.59 | 0.17 | — |
+| Buffer (32b) | **0.15** | — | 0.60 | 0.19 | — |
+| Vector3 | **0.08** | 0.31 | 0.53 | — | — |
+| Vector2 | **0.09** | 0.33 | 0.55 | — | — |
+| Color3 | **0.11** | 0.33 | 0.56 | — | — |
+| CFrame | **0.16** | 0.45 | 0.72 | — | — |
+| UDim2 | **0.12** | — | 0.57 | — | — |
 
 ### Wire size (bytes)
 
@@ -135,10 +132,10 @@ MessagePack’s two wins: `I8` (essentially tied at ~0.10 μs) and `Array (10)`.
 
 ### Takeaways
 
-- Against other **schemaless / dynamic** encoders, Dynamo leads RoundTrip on almost every shared case (~3× Blaze on scalars, ~5× BufferEncoder, ~4× JSON).
-- MessagePack stays competitive on small integers and wins dense numeric arrays (no per-element type tags). Dynamo stays ahead on maps and Roblox datatypes MessagePack cannot encode.
+- Against other **schemaless / dynamic** encoders, Dynamo leads RoundTrip on every shared case in this run (~3.7× Blaze on scalars, ~6× BufferEncoder, ~5× JSON).
+- MessagePack stays closest on small integers and dense numeric arrays (no per-element type tags). Dynamo still wins those cases here and leads on maps and Roblox datatypes MessagePack cannot encode.
 - BufferEncoder pays for a table root + richer type system; size and time trail Dynamo on these fixtures.
-- Blaze dynamic matches Dynamo’s wire size on many scalars but is ~3× slower RoundTrip here.
+- Blaze dynamic matches Dynamo’s wire size on many scalars but is ~3–4× slower RoundTrip here.
 - Prefer Dynamo for mixed Roblox + Luau payloads without schemas; prefer MessagePack when the payload is MsgPack-only Luau data and array density matters.
 
 Re-run locally:

@@ -1,143 +1,143 @@
 __________________________________________________
-* DYNAMO vs VOIDSENTRY vs SERA
+* DYNAMO vs VOIDSENTRYULTIMATE vs SERA
 ________________________
 *** U8:
 **** Size: Dynamo=2b VS=1b Sera=1b
-**** Serialize μs: Dynamo=0.07 VS=0.06 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.09 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.10 VS=0.07 Sera=0.17 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** I8:
 **** Size: Dynamo=2b VS=1b Sera=1b
-**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.10 | win=Dynamo
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** U16:
 **** Size: Dynamo=3b VS=2b Sera=2b
-**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.10 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** I16:
 **** Size: Dynamo=3b VS=2b Sera=2b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.06 Sera=0.10 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** U32:
 **** Size: Dynamo=5b VS=4b Sera=4b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.09 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** I32:
 **** Size: Dynamo=5b VS=4b Sera=4b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.10 VS=0.07 Sera=0.17 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.10 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** F32:
 **** Size: Dynamo=5b VS=4b Sera=4b
-**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** F64:
 **** Size: Dynamo=9b VS=8b Sera=8b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** Bool:
 **** Size: Dynamo=2b VS=1b Sera=1b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 Sera=0.16 | win=VoidSentry
+**** Serialize μs: Dynamo=0.05 VS=0.05 Sera=0.10 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.02 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** String8 (10):
 **** Size: Dynamo=12b VS=11b Sera=11b
-**** Serialize μs: Dynamo=0.08 VS=0.07 Sera=0.13 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.05 VS=0.04 Sera=0.09 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.13 VS=0.11 Sera=0.22 | win=VoidSentry
+**** Serialize μs: Dynamo=0.07 VS=0.07 Sera=0.14 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.05 VS=0.04 Sera=0.09 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.12 VS=0.10 Sera=0.22 | win=VoidSentryUltimate
 ________________________
 *** Buffer8 (8b):
 **** Size: Dynamo=10b VS=9b Sera=9b
-**** Serialize μs: Dynamo=0.10 VS=0.08 Sera=0.12 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.07 VS=0.05 Sera=0.11 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.16 VS=0.13 Sera=0.22 | win=VoidSentry
+**** Serialize μs: Dynamo=0.08 VS=0.08 Sera=0.12 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.06 VS=0.06 Sera=0.10 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.15 VS=0.13 Sera=0.22 | win=VoidSentryUltimate
 ________________________
 *** Buffer16 (32b):
 **** Size: Dynamo=34b VS=34b Sera=34b
-**** Serialize μs: Dynamo=0.11 VS=0.08 Sera=0.24 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.07 VS=0.06 Sera=0.21 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.18 VS=0.15 Sera=0.72 | win=VoidSentry
+**** Serialize μs: Dynamo=0.09 VS=0.08 Sera=0.13 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.06 VS=0.06 Sera=0.10 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.15 VS=0.14 Sera=0.23 | win=VoidSentryUltimate
 ________________________
 *** Vector3:
 **** Size: Dynamo=13b VS=12b Sera=12b
-**** Serialize μs: Dynamo=0.13 VS=0.17 Sera=0.10 | win=Sera
-**** Deserialize μs: Dynamo=0.17 VS=0.03 Sera=0.07 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.34 VS=0.14 Sera=0.20 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.06 Sera=0.10 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 Sera=0.07 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 Sera=0.16 | win=VoidSentryUltimate
 ________________________
 *** Color3:
 **** Size: Dynamo=4b VS=3b Sera=3b
-**** Serialize μs: Dynamo=0.07 VS=0.05 Sera=0.10 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.06 VS=0.05 Sera=0.09 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.12 VS=0.10 Sera=0.20 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.05 VS=0.05 Sera=0.09 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.10 VS=0.09 Sera=0.18 | win=VoidSentryUltimate
 ________________________
 *** CFrame (quat):
 **** Size: Dynamo=29b VS=28b Sera=28b
-**** Serialize μs: Dynamo=0.13 VS=0.11 Sera=0.16 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.09 VS=0.09 Sera=0.14 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.18 VS=0.16 Sera=0.29 | win=VoidSentry
+**** Serialize μs: Dynamo=0.10 VS=0.10 Sera=0.15 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.06 VS=0.06 Sera=0.13 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.16 VS=0.15 Sera=0.28 | win=VoidSentryUltimate
 ________________________
 *** U24:
 **** Size: Dynamo=4b VS=3b
-**** Serialize μs: Dynamo=0.07 VS=0.06 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.09 VS=0.07 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.08 VS=0.07 | win=VoidSentryUltimate
 ________________________
 *** I24:
 **** Size: Dynamo=4b VS=3b
-**** Serialize μs: Dynamo=0.07 VS=0.05 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.03 VS=0.03 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.10 VS=0.07 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.03 VS=0.03 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.09 VS=0.07 | win=VoidSentryUltimate
 ________________________
 *** Array8 (10):
 **** Size: Dynamo=22b VS=11b
-**** Serialize μs: Dynamo=0.33 VS=0.15 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.25 VS=0.17 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.59 VS=0.32 | win=VoidSentry
+**** Serialize μs: Dynamo=0.25 VS=0.15 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.23 VS=0.16 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.49 VS=0.31 | win=VoidSentryUltimate
 ________________________
 *** Array (10):
 **** Size: Dynamo=22b VS=12b
-**** Serialize μs: Dynamo=0.33 VS=0.16 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.24 VS=0.16 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.60 VS=0.32 | win=VoidSentry
+**** Serialize μs: Dynamo=0.25 VS=0.15 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.22 VS=0.16 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.50 VS=0.31 | win=VoidSentryUltimate
 ________________________
 *** Map8 (10):
 **** Size: Dynamo=52b VS=31b
-**** Serialize μs: Dynamo=0.62 VS=0.24 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.62 VS=0.50 | win=VoidSentry
-**** RoundTrip μs: Dynamo=1.30 VS=0.76 | win=VoidSentry
+**** Serialize μs: Dynamo=0.41 VS=0.23 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.58 VS=0.49 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=1.02 VS=0.80 | win=VoidSentryUltimate
 ________________________
 *** Map (10):
 **** Size: Dynamo=52b VS=32b
-**** Serialize μs: Dynamo=0.62 VS=0.23 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.62 VS=0.50 | win=VoidSentry
-**** RoundTrip μs: Dynamo=1.29 VS=0.75 | win=VoidSentry
+**** Serialize μs: Dynamo=0.41 VS=0.23 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.58 VS=0.48 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=1.03 VS=0.73 | win=VoidSentryUltimate
 ________________________
 *** Vector2:
 **** Size: Dynamo=9b VS=8b
-**** Serialize μs: Dynamo=0.07 VS=0.05 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.05 VS=0.05 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.11 VS=0.09 | win=VoidSentry
+**** Serialize μs: Dynamo=0.06 VS=0.05 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.05 VS=0.05 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.10 VS=0.09 | win=VoidSentryUltimate
 ________________________
 *** UDim2:
 **** Size: Dynamo=9b VS=16b
-**** Serialize μs: Dynamo=0.08 VS=0.05 | win=VoidSentry
-**** Deserialize μs: Dynamo=0.06 VS=0.05 | win=VoidSentry
-**** RoundTrip μs: Dynamo=0.13 VS=0.09 | win=VoidSentry
+**** Serialize μs: Dynamo=0.07 VS=0.05 | win=VoidSentryUltimate
+**** Deserialize μs: Dynamo=0.06 VS=0.05 | win=VoidSentryUltimate
+**** RoundTrip μs: Dynamo=0.13 VS=0.10 | win=VoidSentryUltimate
 ______________________________________
-* RoundTrip wins: Dynamo=0 VoidSentry=23 Sera=0 (of 23)
+* RoundTrip wins: Dynamo=0 VoidSentryUltimate=23 Sera=0 (of 23)
 __________________________________________________

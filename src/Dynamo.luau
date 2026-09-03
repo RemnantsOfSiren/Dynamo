@@ -2,7 +2,7 @@
 --!optimize 2
 --[[
     Dynamo 
-    [ V1.0.0 ]
+    [ V1.1.0 ]
     [ by Elentium ]
     [ Apache-2.0 license ]
 
@@ -12,7 +12,7 @@
 
     Wally: 
     ```
-    Dynamo = "elentium/dynamo@1.0.0"
+    Dynamo = "elentium/dynamo@1.1.0"
     ```
 
     Pesde:
@@ -45,7 +45,6 @@ local QuantizedScaleMin = 0
 ----------------------------------------------------
 -- TYPE SIGNS
 ----------------------------------------------------
--- I could potentially micro optimize & remove these type signs and then hardcode them in the infer functions, but that makes it too unreadable
 const U8 = 1
 const I8 = 2
 const U16 = 3
@@ -201,9 +200,9 @@ const RunService = game:GetService("RunService")
 const Dynamo = {}
 const Types = {}
 Dynamo.Types = Types
-const Ser  = TableCreate<<Ser>>(NumTypes)
+const SerHandlers: { [string]: Ser }  = {}
+const Ser = TableCreate<<Ser>>(NumTypes)
 const Des = TableCreate<<Des>>(NumTypes)
-const TypeHandlers = {}
 
 ----------------------------------------------------
 -- VARIABLES
@@ -225,8 +224,10 @@ const EnumMap: { [Enum]: number } = {}
 const EnumIdMap: { [number]: Enum } = Enum:GetEnums()
 
 local QuantizedScaleRange = QuantizedScaleMax - QuantizedScaleMin
-local QuantizedScaleToU16 = 65535 / QuantizedScaleRange
+local QuantizedScaleToU16 = 1 / (65535 / QuantizedScaleRange)
 local QuantizedScaleFromU16 = QuantizedScaleRange / 65535
+
+const Reciprocal = 1 / 255
 
 const ConstantsMap = {
     SerInstanceSerialization = "boolean",
@@ -250,8 +251,7 @@ function Dynamo.Serialize(...: any): buffer
     Cursor = 0
     const Input = TablePack(...)
     for _, Value in Input do
-        const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-        Write(Value)
+        SerHandlers[typeof(Value)](Value)
     end
 
     const Cur = Cursor
@@ -272,8 +272,7 @@ function Dynamo.SerializeWOffset(Offset: number, ...: any): buffer
     Cursor = Offset
     const Input = TablePack(...)
     for _, Value in Input do
-        const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-        Write(Value)
+        SerHandlers[typeof(Value)](Value)
     end
 
     const Cur = Cursor
@@ -288,8 +287,7 @@ end
 --- @return buffer
 function Dynamo.Serialize1(Value: any): buffer
     Cursor = 0
-    const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-    Write(Value)
+    SerHandlers[typeof(Value)](Value)
 
     const Cur = Cursor
     const Buf = buffer.create(Cur)
@@ -304,8 +302,7 @@ end
 --- @return buffer
 function Dynamo.Serialize1WOffset(Value: any, Offset: number): buffer
     Cursor = Offset
-    const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-    Write(Value)
+    SerHandlers[typeof(Value)](Value)
 
     const Cur = Cursor
     const Buf = buffer.create(Cur)
@@ -421,8 +418,7 @@ function Dynamo.Push(Buf: buffer, Offset: number, ...: any): number
     Cursor = Offset
     const Input = TablePack(...)
     for _, Value in Input do
-        const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-        Write(Value)
+        SerHandlers[typeof(Value)](Value)
     end
 
     WriteBuffer = WB
@@ -443,8 +439,7 @@ function Dynamo.Push1(Buf: buffer, Offset: number, Value: any): number
     WriteBuffer = Buf
 
     Cursor = Offset
-    const Write = Ser[TypeHandlers[typeof(Value)](Value)]
-    Write(Value)
+    SerHandlers[typeof(Value)](Value)
 
     WriteBuffer = WB
     return Cursor
@@ -472,7 +467,8 @@ end
 --- Registers a property schema for value-style instance serialization (`SerInstance`).
 ---
 --- Schema values are type-tag ids from `Dynamo.Types` (for example
---- `Dynamo.Types.Vec`). Up to 255 schemas may be registered.
+--- `Dynamo.Types.Vec`). Property payloads are untagged (the schema
+--- already names the type). Up to 255 schemas may be registered.
 --- @tag Core
 --- @param ClassName string -- Instance `ClassName` this schema applies to.
 --- @param Schema { [string]: number } -- Property name → type tag id map.
@@ -530,12 +526,12 @@ function Dynamo.SetConstant(Constant: Constants, Value: any)
     elseif Constant == "QuantizedScaleMax" then
         QuantizedScaleMax = Value
         QuantizedScaleRange = QuantizedScaleMax - QuantizedScaleMin
-        QuantizedScaleToU16 = 65535 / QuantizedScaleRange
+        QuantizedScaleToU16 = 1 / (65535 / QuantizedScaleRange)
         QuantizedScaleFromU16 = QuantizedScaleRange / 65535
     elseif Constant == "QuantizedScaleMin" then
         QuantizedScaleMin = Value
         QuantizedScaleRange = QuantizedScaleMax - QuantizedScaleMin
-        QuantizedScaleToU16 = 65535 / QuantizedScaleRange
+        QuantizedScaleToU16 = 1 / (65535 / QuantizedScaleRange)
         QuantizedScaleFromU16 = QuantizedScaleRange / 65535
     elseif Constant == "SerInstanceSerialization" then
         SerInstanceSerialization = Value
@@ -550,104 +546,217 @@ end
 -- INIT
 ----------------------------------------------------
 do
-    const function TypeHandler_Nil()
-        return Nil
+    const function SerHandler_Nil()
+        const Cur = Cursor
+        buffer.writeu8(WriteBuffer, Cur, Nil)
+        Cursor = Cur + 1
     end
 
-    TypeHandlers["nil"] = TypeHandler_Nil
+    SerHandlers["nil"] = SerHandler_Nil
 end
 
 do
-    const function TypeHandler_Boolean()
-        return Bool
+    const function SerHandler_Boolean(Value: boolean)
+        const Cur = Cursor
+        buffer.writeu16(WriteBuffer, Cur, ((Value and 1 or 0) * 256) + Bool)
+        Cursor = Cur + 2
     end
 
-    TypeHandlers["boolean"] = TypeHandler_Boolean
+    SerHandlers["boolean"] = SerHandler_Boolean
 end
 
 do
-    const function TypeHandler_Number(Value: number)
+    const function SerHandler_Number(Value: number)
         const IsInteger: boolean = Value // 1 == Value
+        const Cur = Cursor
 		if IsInteger then
 			if Value >= 0 then
 				-- unsigned logic
 				if Value < 2 ^ 8 then
-					return U8
+					-- u8
+                    buffer.writeu16(WriteBuffer, Cur, (Value * 256) + U8)
+                    Cursor = Cur + 2
+                    return
 				elseif Value < 2 ^ 16 then
-					return U16
+					-- u16
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, U16)
+                    buffer.writeu16(Buf, Cur + 1, Value)
+                    Cursor = Cur + 3
+                    return
                 elseif Value < 2 ^ 24 then
-                    return U24
+                    -- u24
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, U24)
+                    buffer.writeu16(Buf, Cur + 1, bit32.band(Value, 0xFFFF))
+                    buffer.writeu8(Buf, Cur + 3, bit32.extract(Value, 16, 8))
+                    Cursor = Cur + 4
+                    return
 				elseif Value < 2 ^ 32 then
-					return U32
+					-- u32
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, U32)
+                    buffer.writeu32(Buf, Cur + 1, Value)
+                    Cursor = Cur + 5
+                    return
 				elseif Value < 2 ^ 40 then
-					return U40
+					-- u40
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, U40)
+                    buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
+                    buffer.writeu8(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFF))
+                    Cursor = Cur + 6
+                    return
 				elseif Value < 2 ^ 48 then
-					return U48
+					-- u48
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, U48)
+                    buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
+                    buffer.writeu16(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFFFF))
+                    Cursor = Cur + 7
+                    return
 				end
 			else
 				-- signed logic
 				if Value >= -(2 ^ 7) then
-					return I8
+                    -- i8
+					buffer.writeu16(WriteBuffer, Cur, (Value * 256) + I8)
+                    Cursor = Cur + 2
+                    return
 				elseif Value >= -(2 ^ 15) then
-					return I16
+                    -- i16
+					const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, I16)
+                    buffer.writei16(Buf, Cur + 1, Value)
+                    Cursor = Cur + 3
+                    return
                 elseif Value >= -(2 ^ 23) then
-                    return I24
+                    -- i24
+                    const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, I24)
+                    buffer.writeu16(Buf, Cur + 1, bit32.band(Value, 0xFFFF))
+                    buffer.writeu8(Buf, Cur + 3, bit32.extract(Value, 16, 8))
+                    Cursor = Cur + 4
+                    return
 				elseif Value >= -(2 ^ 31) then
-					return I32
+                    -- i32
+					const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, I32)
+                    buffer.writei32(Buf, Cur + 1, Value)
+                    Cursor = Cur + 5
+                    return
 				elseif Value >= -(2 ^ 39) then
-					return I40
+                    -- i40
+					const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, I40)
+                    buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
+                    buffer.writeu8(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFF))
+                    Cursor = Cur + 6
+                    return
 				elseif Value >= -(2 ^ 47) then
-					return I48
+                    -- i48
+					const Buf = WriteBuffer
+                    buffer.writeu8(Buf, Cur, I48)
+                    buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
+                    buffer.writeu16(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFFFF))
+                    Cursor = Cur + 7
+                    return
 				end
 			end
 
-			return F64
+			const Buf = WriteBuffer
+            buffer.writeu8(Buf, Cur, F64)
+            buffer.writef64(Buf, Cur + 1, Value)
+            Cursor = Cur + 9
+            return
 		end
 
 		if Value >= -3.4028234663852886e38 and Value <= 3.4028234663852886e38 then
-			return F32
+			const Buf = WriteBuffer
+            buffer.writeu8(Buf, Cur, F32)
+            buffer.writef32(Buf, Cur + 1, Value)
+            Cursor = Cur + 5
+            return
 		end
 
-		return F64
+		const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, F64)
+        buffer.writef64(Buf, Cur + 1, Value)
+        Cursor = Cur + 9
     end
 
-    TypeHandlers["number"] = TypeHandler_Number
+    SerHandlers["number"] = SerHandler_Number
 end
 
 do
-    const function TypeHandler_String(Value: string)
+    const function SerHandler_String(Value: string)
         const Len = #Value
+        local Cur = Cursor
+        const Buf = WriteBuffer
         if Len < 2 ^ 8 then
-            return Str8
+            buffer.writeu16(Buf, Cur, (Len * 256) + Str8)
+            Cur += 2
+            buffer.writestring(Buf, Cur, Value)
+            Cursor = Cur + Len
+            return
         elseif Len < 2 ^ 16 then
-            return Str
+            buffer.writeu8(Buf, Cur, Str)
+            buffer.writeu16(Buf, Cur + 1, Len)
+            Cur += 3
+            buffer.writestring(Buf, Cur, Value)
+            Cursor = Cur + Len
+            return
         elseif Len < 2 ^ 24 then
-            return Str24
+            buffer.writeu32(Buf, Cur, Str24 + (Len * 256))
+            Cur += 4
+            buffer.writestring(Buf, Cur, Value)
+            Cursor = Cur + Len
+            return
         end
 
         error("String too large, max length: " .. 2 ^ 24 - 1 .. " provided length: " .. Len)
     end
 
-    TypeHandlers["string"] = TypeHandler_String
+    SerHandlers["string"] = SerHandler_String
 end
 
 do
-    const function TypeHandler_Table(Value: { [any]: any })
+    const function SerHandler_Table(Value: { [any]: any })
         const Len: number = #Value
         const NextValue = Next(Value)
+
+        const Cur = Cursor
 		-- empty table
 		if Len == 0 and NextValue == nil then
-            return Void
+            buffer.writeu8(WriteBuffer, Cur, Void)
+            Cursor = Cur + 1
+            return
 		end
 
         -- array
         if Len ~= 0 and Next(Value, Len) == nil then
             if Len < 2 ^ 8 then
-                return Array8
+                buffer.writeu16(WriteBuffer, Cur, (Len * 256) + Array8)
+                Cursor = Cur + 2
+                for _, Element in Value do
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             elseif Len < 2 ^ 16 then
-                return Array
+                buffer.writeu8(WriteBuffer, Cur, Array)
+                buffer.writeu16(WriteBuffer, Cur + 1, Len)
+                Cursor = Cur + 3
+                for _, Element in Value do
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             elseif Len < 2 ^ 24 then
-                return Array24
+                buffer.writeu32(WriteBuffer, Cur, (Len * 256) + Array24)
+                Cursor = Cur + 4
+                for _, Element in Value do
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             end
             error("Array too large, max length: " .. 2 ^ 24 - 1 .. " provided length: " .. Len)
         end
@@ -660,142 +769,306 @@ do
             end
 
             if MapLen < 2 ^ 8 then
-                return Map8
+                buffer.writeu16(WriteBuffer, Cur, (MapLen * 256) + Map8)
+                Cursor = Cur + 2
+                for Key, Element in Value do
+                    SerHandlers[typeof(Key)](Key)
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             elseif MapLen < 2 ^ 16 then
-                return Map
+                const Buf = WriteBuffer
+                buffer.writeu8(Buf, Cur, Map)
+                buffer.writeu16(Buf, Cur + 1, MapLen)
+                Cursor = Cur + 3
+                for Key, Element in Value do
+                    SerHandlers[typeof(Key)](Key)
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             elseif MapLen < 2 ^ 24 then
-                return Map24
+                buffer.writeu32(WriteBuffer, Cur, (MapLen * 256) + Map24)
+                Cursor = Cur + 4
+                for Key, Element in Value do
+                    SerHandlers[typeof(Key)](Key)
+                    SerHandlers[typeof(Element)](Element)
+                end
+                return
             end
             error("Map too large, max length: " .. 2 ^ 24 - 1 .. " provided length: " .. MapLen)
         end
 
-        return Map
+        const Buf = WriteBuffer
+        local MapLen = 0
+        buffer.writeu8(Buf, Cur, Map)
+        Cursor = Cur + 3
+        for Key, Element in Value do
+            MapLen += 1
+            SerHandlers[typeof(Key)](Key)
+            SerHandlers[typeof(Element)](Element)
+        end
+        buffer.writeu16(Buf, Cur + 1, MapLen)
     end
 
-    TypeHandlers["table"] = TypeHandler_Table
+    SerHandlers["table"] = SerHandler_Table
 end
 
 do
-    const function TypeHandler_Buffer(Value: buffer)
+    const function SerHandler_Buffer(Value: buffer)
         const Len = buffer.len(Value)
+        local Cur = Cursor
+        const WBuf = WriteBuffer
 
         if Len < 2 ^ 8 then
-            return Buf8
+            buffer.writeu16(WBuf, Cur, (Len * 256) + Buf8)
+            Cur += 2
+            buffer.copy(WBuf, Cur, Value, 0, Len)
+            Cursor = Cur + Len
+            return
         elseif Len < 2 ^ 16 then
-            return Buf
+            buffer.writeu8(WBuf, Cur, Buf)
+            buffer.writeu16(WBuf, Cur + 1, Len)
+            Cur += 3
+            buffer.copy(WBuf, Cur, Value, 0, Len)
+            Cursor = Cur + Len
+            return
         elseif Len < 2 ^ 24 then
-            return Buf24
+            buffer.writeu32(WBuf, Cur, (Len * 256) + Buf24)
+            Cur += 4
+            buffer.copy(WBuf, Cur, Value, 0, Len)
+            Cursor = Cur + Len
+            return
         end
 
         error("Buffer too large, max length: " .. 2 ^ 24 - 1 .. " provided length: " .. Len)
     end
 
-    TypeHandlers["buffer"] = TypeHandler_Buffer
+    SerHandlers["buffer"] = SerHandler_Buffer
 end
 
 do
-    const function TypeHandler_Function()
+    const function SerHandler_Function(): ()
         error("Function type cannot be serialized")
     end
 
-    TypeHandlers["function"] = TypeHandler_Function
+    SerHandlers["function"] = SerHandler_Function
 end
 
 do
-    const function TypeHandler_Userdata()
+    const function SerHandler_Userdata(): ()
         error("Custom/Unsupported userdata type cannot be serialized")
     end
 
-    TypeHandlers["userdata"] = TypeHandler_Userdata
+    SerHandlers["userdata"] = SerHandler_Userdata
 end
 
 do
-    const function TypeHandler_Thread()
+    const function SerHandler_Thread(): ()
         error("Thread type cannot be serialized")
     end
 
-    TypeHandlers["thread"] = TypeHandler_Thread
+    SerHandlers["thread"] = SerHandler_Thread
 end
 
 do
-    const function TypeHandler_Vector3()
-        return Vec
+    const function SerHandler_Vector3(Value: Vector3)
+        const Buf = WriteBuffer
+        const Cur = Cursor
+        buffer.writeu8(Buf, Cur, Vec)
+        buffer.writef32(Buf, Cur + 1, Value.X)
+        buffer.writef32(Buf, Cur + 5, Value.Y)
+        buffer.writef32(Buf, Cur + 9, Value.Z)
+        Cursor = Cur + 13
     end
 
-    TypeHandlers["Vector3"] = TypeHandler_Vector3
+    SerHandlers["Vector3"] = SerHandler_Vector3
 end
 
 do
-    const function TypeHandler_CFrame()
-        return Cf
+    const function SerHandler_CFrame(Value: CFrame)
+        if Cf == QCframe then
+            const Pos = Value.Position
+            const Axis, Angle = Value:ToAxisAngle()
+        
+            const HalfAngle = Angle * 0.5
+            const s = math.sin(HalfAngle)
+        
+            const qx = Axis.X * s
+            const qy = Axis.Y * s
+            const qz = Axis.Z * s
+            const qw = math.cos(HalfAngle)
+        
+            const Cur = Cursor
+            const Buf = WriteBuffer
+            buffer.writeu8(Buf, Cur, QCframe)
+            buffer.writef32(Buf, Cur + 1, Pos.X)
+            buffer.writef32(Buf, Cur + 5, Pos.Y)
+            buffer.writef32(Buf, Cur + 9, Pos.Z)
+            buffer.writef32(Buf, Cur + 13, qx)
+            buffer.writef32(Buf, Cur + 17, qy)
+            buffer.writef32(Buf, Cur + 21, qz)
+            buffer.writef32(Buf, Cur + 25, qw)
+            Cursor = Cur + 29
+            return
+        end
+
+        const X, Y, Z, R0, R01, R02, R10, R11, R12, R20, R21, R22 = Value:GetComponents()
+        const Cur = Cursor
+        const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, Cframe)
+        buffer.writef32(Buf, Cur + 1, X)
+        buffer.writef32(Buf, Cur + 5, Y)
+        buffer.writef32(Buf, Cur + 9, Z)
+        buffer.writef32(Buf, Cur + 13, R0)
+        buffer.writef32(Buf, Cur + 17, R01)
+        buffer.writef32(Buf, Cur + 21, R02)
+        buffer.writef32(Buf, Cur + 25, R10)
+        buffer.writef32(Buf, Cur + 29, R11)
+        buffer.writef32(Buf, Cur + 33, R12)
+        buffer.writef32(Buf, Cur + 37, R20)
+        buffer.writef32(Buf, Cur + 41, R21)
+        buffer.writef32(Buf, Cur + 45, R22)
+        Cursor = Cur + 49
     end
 
-    TypeHandlers["CFrame"] = TypeHandler_CFrame
+    SerHandlers["CFrame"] = SerHandler_CFrame
 end
 
 do
-    const function TypeHandler_Instance()
-        return Inst
+    const function SerHandler_Instance(Value: any)
+        if Inst == SerInstance then
+            const ClassName = Value.ClassName
+            const SerSchema = SerInstance_Ser[ClassName]
+            if not SerSchema then
+                error("Ser schema does not exist for classname " .. ClassName)
+            end
+            const SerKeys = SerInstance_Keys[ClassName]
+            const Cur = Cursor
+            const Buf = WriteBuffer
+            buffer.writeu8(Buf, Cur, SerInstance)
+            buffer.writeu8(Buf, Cur + 1, SerInstance_Ids[ClassName])
+            Cursor = Cur + 2
+            for i, Property in SerKeys do
+                const Ser = SerSchema[i]
+                Ser(Value[Property])
+            end
+            return
+        end
+
+        const Id = InstanceMap[Value]
+        if not Id then
+            error(Value:GetFullName() .. " not found in instance map")
+        end
+
+        const Buf = WriteBuffer
+        const Cur = Cursor
+        buffer.writeu8(Buf, Cur, RefInstance)
+        if InstanceRefMode == "Normal" then
+            buffer.writeu16(Buf, Cur + 1, Id)
+            Cursor = Cur + 3
+            return
+        end
+
+        buffer.writeu16(Buf, Cur + 1, bit32.band(Id, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 3, bit32.extract(Id, 16, 8))
+        Cursor = Cur + 4
     end
 
-    TypeHandlers["Instance"] = TypeHandler_Instance
+    SerHandlers["Instance"] = SerHandler_Instance
 end
 
 do
-    const function TypeHandler_Color3()
-        return Color
+    const function SerHandler_Color3(Value: Color3)
+        const Cur = Cursor
+        const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, Color)
+        buffer.writeu8(Buf, Cur + 1, Value.R // Reciprocal)
+        buffer.writeu8(Buf, Cur + 2, Value.G // Reciprocal)
+        buffer.writeu8(Buf, Cur + 3, Value.B // Reciprocal)
+        Cursor = Cur + 4
     end
 
-    TypeHandlers["Color3"] = TypeHandler_Color3
+    SerHandlers["Color3"] = SerHandler_Color3
 end
 
 do
-    const function TypeHandler_UDim2()
-        return Udim2
+    const function SerHandler_UDim2(Value: UDim2)
+        const X = Value.X
+        const Y = Value.Y
+        const Cur = Cursor
+        const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, Udim2)
+        buffer.writeu16(Buf, Cur + 1, (X.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
+        buffer.writei16(Buf, Cur + 3, X.Offset)
+        buffer.writeu16(Buf, Cur + 5, (Y.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
+        buffer.writei16(Buf, Cur + 7, Y.Offset)
+        Cursor = Cur + 9
     end
 
-    TypeHandlers["UDim2"] = TypeHandler_UDim2
+    SerHandlers["UDim2"] = SerHandler_UDim2
 end
 
 do
-    const function TypeHandler_Vector2()
-        return Vec2
+    const function SerHandler_Vector2(Value: Vector2)
+        const Cur = Cursor
+        const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, Vec2)
+        buffer.writef32(Buf, Cur + 1, Value.X)
+        buffer.writef32(Buf, Cur + 5, Value.Y)
+        Cursor = Cur + 9
     end
 
-    TypeHandlers["Vector2"] = TypeHandler_Vector2
+    SerHandlers["Vector2"] = SerHandler_Vector2
 end
 
 do
-    const function TypeHandler_UDim()
-        return Udim
+    const function SerHandler_UDim(Value: UDim)
+        const Cur = Cursor
+        const Buf = WriteBuffer
+        buffer.writeu8(Buf, Cur, Udim)
+        buffer.writeu16(Buf, Cur + 1, (Value.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
+        buffer.writei16(Buf, Cur + 3, Value.Offset)
+        Cursor = Cur + 5
     end
 
-    TypeHandlers["UDim"] = TypeHandler_UDim
+    SerHandlers["UDim"] = SerHandler_UDim
 end
 
 do
-    const function TypeHandlers_Enum()
-        return EnumType
+    const function SerHandlers_Enum(Value: Enum)
+        const WB = WriteBuffer
+        const Cur = Cursor
+        const Id = EnumMap[Value]
+
+        buffer.writeu8(WB, Cur, EnumType)
+        buffer.writeu16(WB, Cur + 1, Id)
+        Cursor = Cur + 3
     end
 
-    TypeHandlers["Enum"] = TypeHandlers_Enum
+    SerHandlers["Enum"] = SerHandlers_Enum
 end
 
 do
-    const function TypeHandlers_EnumItem()
-        return EnumItem
+    const function SerHandlers_EnumItem(Value: EnumItem)
+        const WB = WriteBuffer
+        const Cur = Cursor
+        const EnumParent = Value.EnumType
+        const EnumId = EnumMap[EnumParent]
+
+        buffer.writeu8(WB, Cur, EnumItem)
+        buffer.writeu16(WB, Cur + 1, EnumId)
+        buffer.writeu16(WB, Cur + 3, Value.Value)
+        Cursor = Cur + 5
     end
 
-    TypeHandlers["EnumItem"] = TypeHandlers_EnumItem
+    SerHandlers["EnumItem"] = SerHandlers_EnumItem
 end
 
 do
     const function U8Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U8)
-        buffer.writeu8(Buf, Cur + 1, Value)
-        Cursor = Cur + 2
+        buffer.writeu8(WriteBuffer, Cur, Value)
+        Cursor = Cur + 1
     end
     Ser[U8] = U8Ser
     
@@ -811,10 +1084,8 @@ end
 do
     const function I8Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I8)
-        buffer.writei8(Buf, Cur + 1, Value)
-        Cursor = Cur + 2
+        buffer.writei8(WriteBuffer, Cur, Value)
+        Cursor = Cur + 1
     end
     Ser[I8] = I8Ser
     
@@ -830,10 +1101,8 @@ end
 do
     const function U16Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U16)
-        buffer.writeu16(Buf, Cur + 1, Value)
-        Cursor = Cur + 3
+        buffer.writeu16(WriteBuffer, Cur, Value)
+        Cursor = Cur + 2
     end
     Ser[U16] = U16Ser
     
@@ -849,10 +1118,8 @@ end
 do
     const function I16Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I16)
-        buffer.writei16(Buf, Cur + 1, Value)
-        Cursor = Cur + 3
+        buffer.writei16(WriteBuffer, Cur, Value)
+        Cursor = Cur + 2
     end
     Ser[I16] = I16Ser
     
@@ -868,10 +1135,8 @@ end
 do
     const function U32Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U32)
-        buffer.writeu32(Buf, Cur + 1, Value)
-        Cursor = Cur + 5
+        buffer.writeu32(WriteBuffer, Cur, Value)
+        Cursor = Cur + 4
     end
     Ser[U32] = U32Ser
     
@@ -887,10 +1152,8 @@ end
 do
     const function I32Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I32)
-        buffer.writei32(Buf, Cur + 1, Value)
-        Cursor = Cur + 5
+        buffer.writei32(WriteBuffer, Cur, Value)
+        Cursor = Cur + 4
     end
     Ser[I32] = I32Ser
     
@@ -906,10 +1169,8 @@ end
 do
     const function F32Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, F32)
-        buffer.writef32(Buf, Cur + 1, Value)
-        Cursor = Cur + 5
+        buffer.writef32(WriteBuffer, Cur, Value)
+        Cursor = Cur + 4
     end
     Ser[F32] = F32Ser
     
@@ -925,10 +1186,8 @@ end
 do
     const function F64Ser(Value: number)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, F64)
-        buffer.writef64(Buf, Cur + 1, Value)
-        Cursor = Cur + 9
+        buffer.writef64(WriteBuffer, Cur, Value)
+        Cursor = Cur + 8
     end
     Ser[F64] = F64Ser
     
@@ -944,10 +1203,8 @@ end
 do
     const function BoolSer(Value: boolean)
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Bool)
-        buffer.writeu8(Buf, Cur + 1, Value and 1 or 0)
-        Cursor = Cur + 2
+        buffer.writeu8(WriteBuffer, Cur, Value and 1 or 0)
+        Cursor = Cur + 1
     end
     Ser[Bool] = BoolSer
     
@@ -964,10 +1221,9 @@ do
     const function U24Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U24)
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Value, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Value, 16, 8))
-        Cursor = Cur + 4
+        buffer.writeu16(Buf, Cur, bit32.band(Value, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Value, 16, 8))
+        Cursor = Cur + 3
     end
     Ser[U24] = U24Ser
     
@@ -986,10 +1242,9 @@ do
     const function I24Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I24)
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Value, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Value, 16, 8))
-        Cursor = Cur + 4
+        buffer.writeu16(Buf, Cur, bit32.band(Value, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Value, 16, 8))
+        Cursor = Cur + 3
     end
     Ser[I24] = I24Ser
     
@@ -1012,10 +1267,9 @@ do
     const function U40Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U40)
-        buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
-        buffer.writeu8(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFF))
-        Cursor = Cur + 6
+        buffer.writeu32(Buf, Cur, bit32.band(Value, 0xFFFFFFFF))
+        buffer.writeu8(Buf, Cur + 4, bit32.band(Value // 0x100000000, 0xFF))
+        Cursor = Cur + 5
     end
     Ser[U40] = U40Ser
     
@@ -1034,10 +1288,9 @@ do
     const function I40Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I40)
-        buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
-        buffer.writeu8(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFF))
-        Cursor = Cur + 6
+        buffer.writeu32(Buf, Cur, bit32.band(Value, 0xFFFFFFFF))
+        buffer.writeu8(Buf, Cur + 4, bit32.band(Value // 0x100000000, 0xFF))
+        Cursor = Cur + 5
     end
     Ser[I40] = I40Ser
     
@@ -1060,10 +1313,9 @@ do
     const function U48Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, U48)
-        buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
-        buffer.writeu16(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFFFF))
-        Cursor = Cur + 7
+        buffer.writeu32(Buf, Cur, bit32.band(Value, 0xFFFFFFFF))
+        buffer.writeu16(Buf, Cur + 4, bit32.band(Value // 0x100000000, 0xFFFF))
+        Cursor = Cur + 6
     end
     Ser[U48] = U48Ser
     
@@ -1082,10 +1334,9 @@ do
     const function I48Ser(Value: number)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, I48)
-        buffer.writeu32(Buf, Cur + 1, bit32.band(Value, 0xFFFFFFFF))
-        buffer.writeu16(Buf, Cur + 5, bit32.band(Value // 0x100000000, 0xFFFF))
-        Cursor = Cur + 7
+        buffer.writeu32(Buf, Cur, bit32.band(Value, 0xFFFFFFFF))
+        buffer.writeu16(Buf, Cur + 4, bit32.band(Value // 0x100000000, 0xFFFF))
+        Cursor = Cur + 6
     end
     Ser[I48] = I48Ser
     
@@ -1108,11 +1359,10 @@ do
     const function Vec3Ser(Value: Vector3)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Vec)
-        buffer.writef32(Buf, Cur + 1, Value.X)
-        buffer.writef32(Buf, Cur + 5, Value.Y)
-        buffer.writef32(Buf, Cur + 9, Value.Z)
-        Cursor = Cur + 13
+        buffer.writef32(Buf, Cur, Value.X)
+        buffer.writef32(Buf, Cur + 4, Value.Y)
+        buffer.writef32(Buf, Cur + 8, Value.Z)
+        Cursor = Cur + 12
     end
     Ser[Vec] = Vec3Ser
     
@@ -1132,11 +1382,10 @@ do
     const function Color3Ser(Value: Color3)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Color)
-        buffer.writeu8(Buf, Cur + 1, Value.R * 255 // 1)
-        buffer.writeu8(Buf, Cur + 2, Value.G * 255 // 1)
-        buffer.writeu8(Buf, Cur + 3, Value.B * 255 // 1)
-        Cursor = Cur + 4
+        buffer.writeu8(Buf, Cur, Value.R // Reciprocal)
+        buffer.writeu8(Buf, Cur + 1, Value.G // Reciprocal)
+        buffer.writeu8(Buf, Cur + 2, Value.B // Reciprocal)
+        Cursor = Cur + 3
     end
     Ser[Color] = Color3Ser
     
@@ -1156,10 +1405,9 @@ do
     const function UDimSer(Value: UDim)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Udim)
-        buffer.writeu16(Buf, Cur + 1, ((Value.Scale - QuantizedScaleMin) * QuantizedScaleToU16) // 1)
-        buffer.writei16(Buf, Cur + 3, Value.Offset)
-        Cursor = Cur + 5
+        buffer.writeu16(Buf, Cur, (Value.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
+        buffer.writei16(Buf, Cur + 2, Value.Offset)
+        Cursor = Cur + 4
     end
     Ser[Udim] = UDimSer
     
@@ -1180,12 +1428,11 @@ do
         const Y = Value.Y
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Udim2)
-        buffer.writeu16(Buf, Cur + 1, ((X.Scale - QuantizedScaleMin) * QuantizedScaleToU16) // 1)
+        buffer.writeu16(Buf, Cur + 1, (X.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
         buffer.writei16(Buf, Cur + 3, X.Offset)
-        buffer.writeu16(Buf, Cur + 5, ((Y.Scale - QuantizedScaleMin) * QuantizedScaleToU16) // 1)
+        buffer.writeu16(Buf, Cur + 5, (Y.Scale - QuantizedScaleMin) // QuantizedScaleToU16)
         buffer.writei16(Buf, Cur + 7, Y.Offset)
-        Cursor = Cur + 9
+        Cursor = Cur + 8
     end
     Ser[Udim2] = UDim2Ser
     
@@ -1206,10 +1453,9 @@ do
     const function Vec2Ser(Value: Vector2)
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Vec2)
-        buffer.writef32(Buf, Cur + 1, Value.X)
-        buffer.writef32(Buf, Cur + 5, Value.Y)
-        Cursor = Cur + 9
+        buffer.writef32(Buf, Cur, Value.X)
+        buffer.writef32(Buf, Cur + 4, Value.Y)
+        Cursor = Cur + 8
     end
     Ser[Vec2] = Vec2Ser
     
@@ -1226,9 +1472,6 @@ end
 
 do
     const function NilSer()
-        const Cur = Cursor
-        buffer.writeu8(WriteBuffer, Cur, Nil)
-        Cursor = Cur + 1
     end
     Ser[Nil] = NilSer
     
@@ -1240,9 +1483,6 @@ end
 
 do
     const function VoidSer()
-        const Cur = Cursor
-        buffer.writeu8(WriteBuffer, Cur, Void)
-        Cursor = Cur + 1
     end
     Ser[Void] = VoidSer
     
@@ -1257,20 +1497,19 @@ do
         const X, Y, Z, R0, R01, R02, R10, R11, R12, R20, R21, R22 = Value:GetComponents()
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, Cframe)
-        buffer.writef32(Buf, Cur + 1, X)
-        buffer.writef32(Buf, Cur + 5, Y)
-        buffer.writef32(Buf, Cur + 9, Z)
-        buffer.writef32(Buf, Cur + 13, R0)
-        buffer.writef32(Buf, Cur + 17, R01)
-        buffer.writef32(Buf, Cur + 21, R02)
-        buffer.writef32(Buf, Cur + 25, R10)
-        buffer.writef32(Buf, Cur + 29, R11)
-        buffer.writef32(Buf, Cur + 33, R12)
-        buffer.writef32(Buf, Cur + 37, R20)
-        buffer.writef32(Buf, Cur + 41, R21)
-        buffer.writef32(Buf, Cur + 45, R22)
-        Cursor = Cur + 49
+        buffer.writef32(Buf, Cur, X)
+        buffer.writef32(Buf, Cur + 4, Y)
+        buffer.writef32(Buf, Cur + 8, Z)
+        buffer.writef32(Buf, Cur + 12, R0)
+        buffer.writef32(Buf, Cur + 16, R01)
+        buffer.writef32(Buf, Cur + 20, R02)
+        buffer.writef32(Buf, Cur + 24, R10)
+        buffer.writef32(Buf, Cur + 28, R11)
+        buffer.writef32(Buf, Cur + 32, R12)
+        buffer.writef32(Buf, Cur + 36, R20)
+        buffer.writef32(Buf, Cur + 40, R21)
+        buffer.writef32(Buf, Cur + 44, R22)
+        Cursor = Cur + 48
     end
     Ser[Cframe] = CFrameSer
     
@@ -1310,15 +1549,14 @@ do
     
         const Cur = Cursor
         const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, QCframe)
-        buffer.writef32(Buf, Cur + 1, Pos.X)
-        buffer.writef32(Buf, Cur + 5, Pos.Y)
-        buffer.writef32(Buf, Cur + 9, Pos.Z)
-        buffer.writef32(Buf, Cur + 13, qx)
-        buffer.writef32(Buf, Cur + 17, qy)
-        buffer.writef32(Buf, Cur + 21, qz)
-        buffer.writef32(Buf, Cur + 25, qw)
-        Cursor = Cur + 29
+        buffer.writef32(Buf, Cur, Pos.X)
+        buffer.writef32(Buf, Cur + 4, Pos.Y)
+        buffer.writef32(Buf, Cur + 8, Pos.Z)
+        buffer.writef32(Buf, Cur + 12, qx)
+        buffer.writef32(Buf, Cur + 16, qy)
+        buffer.writef32(Buf, Cur + 20, qz)
+        buffer.writef32(Buf, Cur + 24, qw)
+        Cursor = Cur + 28
     end
     Ser[QCframe] = QCFrameSer
     
@@ -1347,10 +1585,8 @@ do
         end
         const SerKeys = SerInstance_Keys[ClassName]
         const Cur = Cursor
-        const Buf = WriteBuffer
-        buffer.writeu8(Buf, Cur, SerInstance)
-        buffer.writeu8(Buf, Cur + 1, SerInstance_Ids[ClassName])
-        Cursor = Cur + 2
+        buffer.writeu8(WriteBuffer, Cur, SerInstance_Ids[ClassName])
+        Cursor = Cur + 1
         for i, Property in SerKeys do
             const Ser = SerSchema[i]
             Ser(Value[Property])
@@ -1387,16 +1623,15 @@ do
 
         const Buf = WriteBuffer
         const Cur = Cursor
-        buffer.writeu8(Buf, Cur, RefInstance)
         if InstanceRefMode == "Normal" then
-            buffer.writeu16(Buf, Cur + 1, Id)
-            Cursor = Cur + 3
+            buffer.writeu16(Buf, Cur, Id)
+            Cursor = Cur + 2
             return
         end
 
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Id, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Id, 16, 8))
-        Cursor = Cur + 4
+        buffer.writeu16(Buf, Cur, bit32.band(Id, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Id, 16, 8))
+        Cursor = Cur + 3
     end
     Ser[RefInstance] = RefInstanceSer
 
@@ -1423,12 +1658,10 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Array)
-        buffer.writeu16(Buf, Cur + 1, Len)
-        Cursor = Cur + 3
+        buffer.writeu16(Buf, Cur, Len)
+        Cursor = Cur + 2
         for _, Element in Value do
-            const Write = Ser[TypeHandlers[typeof(Element)](Element)]
-            Write(Element)
+            SerHandlers[typeof(Element)](Element)
         end
     end
     Ser[Array] = ArraySer
@@ -1458,12 +1691,10 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Array8)
-        buffer.writeu8(Buf, Cur + 1, Len)
-        Cursor = Cur + 2
+        buffer.writeu8(Buf, Cur, Len)
+        Cursor = Cur + 1
         for _, Element in Value do
-            const Write = Ser[TypeHandlers[typeof(Element)](Element)]
-            Write(Element)
+            SerHandlers[typeof(Element)](Element)
         end
     end
     Ser[Array8] = Array8Ser
@@ -1493,13 +1724,11 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Array24)
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Len, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Len, 16, 8))
-        Cursor = Cur + 4
+        buffer.writeu16(Buf, Cur, bit32.band(Len, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Len, 16, 8))
+        Cursor = Cur + 3
         for _, Element in Value do
-            const Write = Ser[TypeHandlers[typeof(Element)](Element)]
-            Write(Element)
+            SerHandlers[typeof(Element)](Element)
         end
     end
     Ser[Array24] = Array24Ser
@@ -1531,16 +1760,13 @@ do
         const Cur = Cursor
         local Len = 0
 
-        buffer.writeu8(Buf, Cur, Map)
-        Cursor = Cur + 3
+        Cursor = Cur + 2
         for Key, Element in Value do
             Len += 1
-            const WriteKey = Ser[TypeHandlers[typeof(Key)](Key)]
-            WriteKey(Key)
-            const WriteValue = Ser[TypeHandlers[typeof(Element)](Element)]
-            WriteValue(Element)
+            SerHandlers[typeof(Key)](Key)
+            SerHandlers[typeof(Element)](Element)
         end
-        buffer.writeu16(Buf, Cur + 1, Len)
+        buffer.writeu16(Buf, Cur, Len)
     end
     Ser[Map] = MapSer
 
@@ -1574,16 +1800,13 @@ do
         const Cur = Cursor
         local Len = 0
 
-        buffer.writeu8(Buf, Cur, Map8)
-        Cursor = Cur + 2
+        Cursor = Cur + 1
         for Key, Element in Value do
             Len += 1
-            const WriteKey = Ser[TypeHandlers[typeof(Key)](Key)]
-            WriteKey(Key)
-            const WriteValue = Ser[TypeHandlers[typeof(Element)](Element)]
-            WriteValue(Element)
+            SerHandlers[typeof(Key)](Key)
+            SerHandlers[typeof(Element)](Element)
         end
-        buffer.writeu8(Buf, Cur + 1, Len)
+        buffer.writeu8(Buf, Cur, Len)
     end
     Ser[Map8] = Map8Ser
 
@@ -1617,17 +1840,14 @@ do
         const Cur = Cursor
         local Len = 0
 
-        buffer.writeu8(Buf, Cur, Map24)
-        Cursor = Cur + 4
+        Cursor = Cur + 3
         for Key, Element in Value do
             Len += 1
-            const WriteKey = Ser[TypeHandlers[typeof(Key)](Key)]
-            WriteKey(Key)
-            const WriteValue = Ser[TypeHandlers[typeof(Element)](Element)]
-            WriteValue(Element)
+            SerHandlers[typeof(Key)](Key)
+            SerHandlers[typeof(Element)](Element)
         end
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Len, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Len, 16, 8))
+        buffer.writeu16(Buf, Cur, bit32.band(Len, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Len, 16, 8))
     end
     Ser[Map24] = Map24Ser
 
@@ -1663,10 +1883,9 @@ do
         const Cur = Cursor
         const Len = buffer.len(Value)
 
-        buffer.writeu8(WB, Cur, Buf)
-        buffer.writeu16(WB, Cur + 1, Len)
-        buffer.copy(WB, Cur + 3, Value, 0, Len)
-        Cursor = Cur + Len + 3
+        buffer.writeu16(WB, Cur, Len)
+        buffer.copy(WB, Cur + 2, Value, 0, Len)
+        Cursor = Cur + Len + 2
     end
     Ser[Buf] = BufSer
 
@@ -1688,10 +1907,9 @@ do
         const Cur = Cursor
         const Len = buffer.len(Value)
 
-        buffer.writeu8(WB, Cur, Buf8)
-        buffer.writeu8(WB, Cur + 1, Len)
-        buffer.copy(WB, Cur + 2, Value, 0, Len)
-        Cursor = Cur + Len + 2
+        buffer.writeu8(WB, Cur, Len)
+        buffer.copy(WB, Cur + 1, Value, 0, Len)
+        Cursor = Cur + Len + 1
     end
     Ser[Buf8] = Buf8Ser
 
@@ -1713,11 +1931,10 @@ do
         const Cur = Cursor
         const Len = buffer.len(Value)
 
-        buffer.writeu8(WB, Cur, Buf24)
-        buffer.writeu16(WB, Cur + 1, bit32.band(Len, 0xFFFF))
-        buffer.writeu8(WB, Cur + 3, bit32.extract(Len, 16, 8))
-        buffer.copy(WB, Cur + 4, Value, 0, Len)
-        Cursor = Cur + Len + 4
+        buffer.writeu16(WB, Cur, bit32.band(Len, 0xFFFF))
+        buffer.writeu8(WB, Cur + 2, bit32.extract(Len, 16, 8))
+        buffer.copy(WB, Cur + 3, Value, 0, Len)
+        Cursor = Cur + Len + 3
     end
     Ser[Buf24] = Buf24Ser
 
@@ -1741,10 +1958,9 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Str)
-        buffer.writeu16(Buf, Cur + 1, Len)
-        buffer.writestring(Buf, Cur + 3, Value)
-        Cursor = Cur + Len + 3
+        buffer.writeu16(Buf, Cur, Len)
+        buffer.writestring(Buf, Cur + 2, Value)
+        Cursor = Cur + Len + 2
     end
     Ser[Str] = StrSer
 
@@ -1765,10 +1981,9 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Str8)
-        buffer.writeu8(Buf, Cur + 1, Len)
-        buffer.writestring(Buf, Cur + 2, Value)
-        Cursor = Cur + Len + 2
+        buffer.writeu8(Buf, Cur, Len)
+        buffer.writestring(Buf, Cur + 1, Value)
+        Cursor = Cur + Len + 1
     end
     Ser[Str8] = Str8Ser
 
@@ -1789,11 +2004,10 @@ do
         const Cur = Cursor
         const Len = #Value
 
-        buffer.writeu8(Buf, Cur, Str24)
-        buffer.writeu16(Buf, Cur + 1, bit32.band(Len, 0xFFFF))
-        buffer.writeu8(Buf, Cur + 3, bit32.extract(Len, 16, 8))
-        buffer.writestring(Buf, Cur + 4, Value)
-        Cursor = Cur + Len + 4
+        buffer.writeu16(Buf, Cur, bit32.band(Len, 0xFFFF))
+        buffer.writeu8(Buf, Cur + 2, bit32.extract(Len, 16, 8))
+        buffer.writestring(Buf, Cur + 3, Value)
+        Cursor = Cur + Len + 3
     end
     Ser[Str24] = Str24Ser
 
@@ -1816,9 +2030,8 @@ do
         const Cur = Cursor
         const Id = EnumMap[Value]
 
-        buffer.writeu8(WB, Cur, EnumType)
-        buffer.writeu16(WB, Cur + 1, Id)
-        Cursor = Cur + 3
+        buffer.writeu16(WB, Cur, Id)
+        Cursor = Cur + 2
     end
     Ser[EnumType] = EnumSer
 
@@ -1838,10 +2051,9 @@ do
         const EnumParent = Value.EnumType
         const EnumId = EnumMap[EnumParent]
 
-        buffer.writeu8(WB, Cur, EnumItem)
-        buffer.writeu16(WB, Cur + 1, EnumId)
-        buffer.writeu16(WB, Cur + 3, Value.Value)
-        Cursor = Cur + 5
+        buffer.writeu16(WB, Cur, EnumId)
+        buffer.writeu16(WB, Cur + 2, Value.Value)
+        Cursor = Cur + 4
     end
     Ser[EnumItem] = EnumItemSer
 

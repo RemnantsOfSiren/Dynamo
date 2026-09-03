@@ -103,7 +103,7 @@ Enum ids are assigned from `Enum:GetEnums()` at module init.
 | Tag | Payload |
 | --- | --- |
 | `RefInstance` | `u16` id (`Normal`) or `u24` id (`Extended`) |
-| `SerInstance` | schema id `u8`, then each property as a tagged value |
+| `SerInstance` | schema id `u8`, then each property as an untagged payload (schema supplies the type) |
 
 Default instance path is **reference** serialization (`Inst` → `RefInstance` when `SerInstanceSerialization` is `false`). Switch with:
 

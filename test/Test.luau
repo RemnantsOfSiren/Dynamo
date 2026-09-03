@@ -177,8 +177,8 @@ const function Test(Log: boolean?): TestTypes.Results
 		Size = T.Vec,
 	})
 	Dynamo.SetConstant("SerInstanceSerialization", true)
-	-- tag + schemaId + Color(tag+3) + Size(tag+12); keys sorted Color, Size
-	RunTest("SerInstance Part", BenchPart, 1 + 1 + (1 + 3) + (1 + 12), function(A, B)
+	-- tag + schemaId + Color(3) + Size(12); keys sorted Color, Size (untagged payloads)
+	RunTest("SerInstance Part", BenchPart, 1 + 1 + 3 + 12, function(A, B)
 		return A ~= B
 			and A.ClassName == B.ClassName
 			and TestHelper.Vector3sEq(A.Size, B.Size)

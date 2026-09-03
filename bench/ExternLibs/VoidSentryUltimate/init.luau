@@ -2,13 +2,13 @@
 --!optimize 2
 --[[
     VoidSentryUltimate 
-    [ V1.0.1 ]
+    [ V1.1.0 ]
     [ by IAMNOTULTRA3 a.k.a Elentium, Elite ]
     [ Apache-2.0 License ]
 
     Efficient SerDes library
 
-    Wally: "elentium/voidsentryultimate@1.0.1"
+    Wally: "elentium/voidsentryultimate@1.1.0"
     Pesde: pesde add elentium/voidsentryultimate
     Npm: npm install @elentium/voidsentryultimate
     Docs: https://Elentium.github.io/VoidSentryUltimate

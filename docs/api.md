@@ -116,7 +116,8 @@ Dynamo.DefineSerInstanceSchema(ClassName: string, Schema: { [string]: number })
 
 Registers a property schema for value-style instance serialization (`SerInstance`). Schema values are type tag ids from `Dynamo.Types` (for example `Dynamo.Types.Vec`, `Dynamo.Types.Color`).
 
-Enable with `Dynamo.SetConstant("SerInstanceSerialization", true)`. Up to **255** schemas may be registered. Property writers use the same Ser/Des paths as normal values (including type tags).
+Enable with `Dynamo.SetConstant("SerInstanceSerialization", true)`. Up to **255** schemas may be registered. Property payloads are untagged; the schema already names each property's type.
+
 
 Instance **references** (`RefInstance`) do not use this API; they use the `_VSID` attribute maps maintained at module init (`SerInstanceSerialization` left `false`, the default).
 
