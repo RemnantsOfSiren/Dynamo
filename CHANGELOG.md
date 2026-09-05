@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1:
+- Fixed wally package
+
 ## 1.1.0
 - Optimizations
 - Fixed SerInstance & Optimized its bandwidth
