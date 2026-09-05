@@ -250,7 +250,8 @@ const ConstantsMap = {
 function Dynamo.Serialize(...: any): buffer
     Cursor = 0
     const Input = TablePack(...)
-    for _, Value in Input do
+    for Index = 1, Input.n do
+        const Value = Input[Index]
         SerHandlers[typeof(Value)](Value)
     end
 
@@ -271,7 +272,8 @@ end
 function Dynamo.SerializeWOffset(Offset: number, ...: any): buffer
     Cursor = Offset
     const Input = TablePack(...)
-    for _, Value in Input do
+    for Index = 1, Input.n do
+        const Value = Input[Index]
         SerHandlers[typeof(Value)](Value)
     end
 
@@ -332,7 +334,7 @@ function Dynamo.Deserialize(Buf: buffer): ...any
     end
     ReadBuffer = nil
 
-    return table.unpack(Result)
+    return table.unpack(Result, 1, Resultc)
 end
 
 --- Deserializes top-level values while the cursor is in `[Start, End)`.
@@ -362,7 +364,7 @@ function Dynamo.DeserializeRange(Buf: buffer, Start: number, End: number?): ...a
     end
     ReadBuffer = nil
     
-    return table.unpack(Result)
+    return table.unpack(Result, 1, Resultc)
 end
 
 --- Deserializes a single top-level value from the start of a buffer.
@@ -417,7 +419,8 @@ function Dynamo.Push(Buf: buffer, Offset: number, ...: any): number
 
     Cursor = Offset
     const Input = TablePack(...)
-    for _, Value in Input do
+    for Index = 1, Input.n do
+        const Value = Input[Index]
         SerHandlers[typeof(Value)](Value)
     end
 
@@ -738,7 +741,8 @@ do
             if Len < 2 ^ 8 then
                 buffer.writeu16(WriteBuffer, Cur, (Len * 256) + Array8)
                 Cursor = Cur + 2
-                for _, Element in Value do
+                for Index = 1, Len do
+                    const Element = Value[Index]
                     SerHandlers[typeof(Element)](Element)
                 end
                 return
@@ -746,14 +750,16 @@ do
                 buffer.writeu8(WriteBuffer, Cur, Array)
                 buffer.writeu16(WriteBuffer, Cur + 1, Len)
                 Cursor = Cur + 3
-                for _, Element in Value do
+                for Index = 1, Len do
+                    const Element = Value[Index]
                     SerHandlers[typeof(Element)](Element)
                 end
                 return
             elseif Len < 2 ^ 24 then
                 buffer.writeu32(WriteBuffer, Cur, (Len * 256) + Array24)
                 Cursor = Cur + 4
-                for _, Element in Value do
+                for Index = 1, Len do
+                    const Element = Value[Index]
                     SerHandlers[typeof(Element)](Element)
                 end
                 return
@@ -1660,7 +1666,8 @@ do
 
         buffer.writeu16(Buf, Cur, Len)
         Cursor = Cur + 2
-        for _, Element in Value do
+        for Index = 1, Len do
+            const Element = Value[Index]
             SerHandlers[typeof(Element)](Element)
         end
     end
@@ -1693,7 +1700,8 @@ do
 
         buffer.writeu8(Buf, Cur, Len)
         Cursor = Cur + 1
-        for _, Element in Value do
+        for Index = 1, Len do
+            const Element = Value[Index]
             SerHandlers[typeof(Element)](Element)
         end
     end
@@ -1727,7 +1735,8 @@ do
         buffer.writeu16(Buf, Cur, bit32.band(Len, 0xFFFF))
         buffer.writeu8(Buf, Cur + 2, bit32.extract(Len, 16, 8))
         Cursor = Cur + 3
-        for _, Element in Value do
+        for Index = 1, Len do
+            const Element = Value[Index]
             SerHandlers[typeof(Element)](Element)
         end
     end
