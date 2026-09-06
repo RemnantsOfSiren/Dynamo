@@ -1,5 +1,5 @@
 name = "elentium/dynamo"
-version = "1.1.0"
+version = "1.1.2"
 description = "Extremely optimized schemaless SerDes library"
 license = "Apache-2.0"
 authors = ["Elentium"]

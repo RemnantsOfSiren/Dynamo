@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2:
+- Merged pr #1 (gapped values fix)
+- Added tests regarding gapped arrays/values
+
 ## 1.1.1:
 - Fixed wally package
 

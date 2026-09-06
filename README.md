@@ -8,7 +8,7 @@ Performant Schemaless SerDes
 Wally:
 
 ```toml
-Dynamo = "elentium/dynamo@1.1.1"
+Dynamo = "elentium/dynamo@1.1.2"
 ```
 
 Pesde:

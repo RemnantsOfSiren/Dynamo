@@ -9,7 +9,7 @@ sidebar_position: 2
 Add Dynamo to your `wally.toml` dependencies:
 
 ```toml
-Dynamo = "elentium/dynamo@1.1.1"
+Dynamo = "elentium/dynamo@1.1.2"
 ```
 
 Install dependencies:

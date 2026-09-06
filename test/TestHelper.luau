@@ -78,11 +78,28 @@ const function CFramesApprox(A: CFrame, B: CFrame): boolean
 		and ApproxEq(Ar22, Br22)
 end
 
-const function ArraysEq(A: { any }, B: { any }, Compare: (any, any) -> boolean): boolean
-	if #A ~= #B then
+const function AnyEq(A: any, B: any): boolean
+	return A == B
+end
+
+const function ArraysEq(A: { any }, B: { any }, Compare: (any, any) -> boolean, Len: number?): boolean
+	const Count = Len or #A
+	if Len == nil and #B ~= Count then
 		return false
 	end
-	for i = 1, #A do
+	for i = 1, Count do
+		if not Compare(A[i], B[i]) then
+			return false
+		end
+	end
+	return true
+end
+
+const function PackedEq(A: { n: number, [number]: any }, B: { n: number, [number]: any }, Compare: (any, any) -> boolean): boolean
+	if A.n ~= B.n then
+		return false
+	end
+	for i = 1, A.n do
 		if not Compare(A[i], B[i]) then
 			return false
 		end
@@ -190,7 +207,9 @@ return {
 	UDim2sApprox = UDim2sApprox,
 	Color3sEq = Color3sEq,
 	CFramesApprox = CFramesApprox,
+	AnyEq = AnyEq,
 	ArraysEq = ArraysEq,
+	PackedEq = PackedEq,
 	MapsEq = MapsEq,
 	InstancesEq = InstancesEq,
 	EnumsEq = EnumsEq,

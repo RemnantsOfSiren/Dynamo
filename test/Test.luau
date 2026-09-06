@@ -46,6 +46,27 @@ const function RunTest(
 	}))
 end
 
+const function RunPackedTest(
+	Name: string,
+	ExpectedSize: number,
+	...: any
+)
+	const Packed = table.pack(...)
+	AddTest(TestHelper.RunTest(Name, {
+		Serialize = function(Value: { n: number, [number]: any })
+			return Dynamo.Serialize(table.unpack(Value, 1, Value.n))
+		end,
+		Deserialize = function(Buf: buffer)
+			return table.pack(Dynamo.Deserialize(Buf))
+		end,
+		Value = Packed,
+		ExpectedSize = ExpectedSize,
+		Compare = function(A, B)
+			return TestHelper.PackedEq(A, B, TestHelper.AnyEq)
+		end,
+	}))
+end
+
 const function PrintResults()
 	print(Separator)
 	print("* DYNAMO TEST RESULTS")
@@ -77,6 +98,14 @@ const function Test(Log: boolean?): TestTypes.Results
 	for i = 1, 300 do
 		BigArray[i] = i % 256
 	end
+
+	const GappedArray8 = { 1, nil, 3 }
+
+	const GappedArray = table.create(300)
+	for i = 1, 300 do
+		GappedArray[i] = i % 256
+	end
+	GappedArray[150] = nil
 
 	const BigMap: { [number]: number } = {}
 	for i = 1, 300 do
@@ -122,8 +151,16 @@ const function Test(Log: boolean?): TestTypes.Results
 	RunTest("Array8", { 1, 2, 3 }, 1 + 1 + 3 * 2, function(A, B)
 		return TestHelper.ArraysEq(A, B, TestHelper.NumbersEq)
 	end)
+	-- Array8: sign + u8 len + U8 + Nil + U8 (holes still count toward #)
+	RunTest("Array8 gapped", GappedArray8, 1 + 1 + 2 + 1 + 2, function(A, B)
+		return TestHelper.ArraysEq(A, B, TestHelper.AnyEq, 3)
+	end)
 	RunTest("Array", BigArray, 1 + 2 + 300 * 2, function(A, B)
 		return TestHelper.ArraysEq(A, B, TestHelper.NumbersEq)
+	end)
+	-- Array: same as Array but index 150 is Nil (1 byte) instead of U8 (2)
+	RunTest("Array gapped", GappedArray, 1 + 2 + 299 * 2 + 1, function(A, B)
+		return TestHelper.ArraysEq(A, B, TestHelper.AnyEq, 300)
 	end)
 	RunTest("Map8", { [100] = 2, [200] = 4 }, 1 + 1 + 2 * 4, function(A, B)
 		return TestHelper.MapsEq(A, B, TestHelper.NumbersEq)
@@ -132,6 +169,10 @@ const function Test(Log: boolean?): TestTypes.Results
 	RunTest("Map", BigMap, 1 + 2 + 300 * (3 + 2), function(A, B)
 		return TestHelper.MapsEq(A, B, TestHelper.NumbersEq)
 	end)
+
+	Section("Serialize")
+	-- U8 + Nil + U8 + Nil + Str8("x")
+	RunPackedTest("Gapped values", 2 + 1 + 2 + 1 + (1 + 1 + 1), 1, nil, 2, nil, "x")
 
 	Section("Vector Types")
 	RunTest("Vector3", TestVector3, 1 + 12, TestHelper.Vector3sEq)
