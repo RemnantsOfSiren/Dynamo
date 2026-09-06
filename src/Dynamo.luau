@@ -2120,7 +2120,7 @@ Types.I48 = I48
 
 if RunService:IsClient() then
     const function RetryGetAttribute(Co: thread, Descendant: Instance): ()
-        TaskSpawn(Co, Descendant:GetAttribute(InstanceRefAttribute))
+        TaskSpawn(Co, Descendant.GetAttribute, Descendant, InstanceRefAttribute)
     end
     
     const function DeferFetch(Descendant: Instance): number?
@@ -2131,11 +2131,9 @@ if RunService:IsClient() then
     
     const function OnInstance(Descendant: Instance): ()
         local Success: boolean, Id: number? = Pcall(Descendant.GetAttribute :: (Instance, string) -> number?, Descendant, InstanceRefAttribute)
-        if not Success then
-            return
-        end
-        if not Id then
+        if not Success or not Id then
             Id = DeferFetch(Descendant)
+            
             if not Id then
                 return
             end
