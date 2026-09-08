@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.3:
+- Merged pr #2 (instance attribute fetch fix)
+
 ## 1.1.2:
 - Merged pr #1 (gapped values fix)
 - Added tests regarding gapped arrays/values

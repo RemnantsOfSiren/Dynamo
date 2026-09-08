@@ -2,7 +2,7 @@
 --!optimize 2
 --[[
     Dynamo 
-    [ V1.1.2 ]
+    [ V1.1.3 ]
     [ by Elentium ]
     [ Apache-2.0 license ]
 
@@ -12,7 +12,7 @@
 
     Wally: 
     ```
-    Dynamo = "elentium/dynamo@1.1.2"
+    Dynamo = "elentium/dynamo@1.1.3"
     ```
 
     Pesde:
