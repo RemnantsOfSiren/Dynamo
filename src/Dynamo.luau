@@ -219,7 +219,7 @@ const SerInstance_Ids: { [string]: number } = {}
 const SerInstance_Reverse: { [number]: string } = {}
 local SerInstanceSchemaCount = 0
 const IdMap = setmetatable({} :: { [number]: Instance }, { __mode = "v" })
-const InstanceMap = setmetatable({} :: { [Instance]: number }, { __mode = "k" })
+const InstanceMap = setmetatable({} :: { [Instance]: number }, { __mode = "v" })
 const EnumMap: { [Enum]: number } = {}
 const EnumIdMap: { [number]: Enum } = Enum:GetEnums()
 
